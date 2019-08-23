@@ -1,0 +1,226 @@
+---
+title: "Probability/Statistics on R"
+author: "Aayush Kapoor"
+date: "23 August 2019"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+
+# Task 1 Probability 
+
+##### Tossing a fair die 7 times. Consider the following events, A = "each value appears at least once" and B = "the outcome is alternate in numbers (i.e.,no two values are adjacent)". What is p(A|B)?
+
+```{r}
+ntrials <- 100000 # total number of simulations we want to perform.
+Bcounter <- 0 # a counter for checking whether B was true.
+ABcounter <- 0 # a counter for checking intersection of A and B
+for (i in 1:ntrials){
+  dicethrow = sample(c(1,2,3,4,5,6),size = 7,replace = T)
+  
+  if (!(0 %in% diff(dicethrow))) # to check difference of adjecent dice throws are same.
+    {
+    Bcounter = Bcounter+1
+    
+    # the below condition to if A is true when B already happened.
+    
+    if(length(unique(dicethrow))==6) # to check all 6 numbers are present in dicethrow.
+    {
+      ABcounter = ABcounter+1
+    }
+  }
+}
+
+probAGB = ABcounter/Bcounter
+
+probAGB # probability of A given B
+```
+
+
+
+# Task 2 Imputation, Probability and Entropy
+
+##### 2.1 Handle NAs by mode imputation, and plot individual variables in a histogram with proper axis labels and title.
+
+```{r}
+library(imputeMissings)
+#The inbuilt library which can impute missing values based on 'mode' or 'RandomForest'. Unless specified specifically the method you want to use it computes mode value.(default='Mode')
+q2data <- read.csv("Q2_data.csv")
+q2data  # let's look at our data frame that currently has missing values.
+q2data <- impute(q2data)
+# Now let's look at our data frame after mode imputation.
+q2data
+# We need to create histograms for each variable. 
+# Let's create for variable X.
+barplot(table(q2data$X),xlab = "Values of X", ylab = "Count",col='red',main ='Count of X')
+# Let's create for variable Y.
+barplot(table(q2data$Y),xlab = "Values of Y", ylab = "Count",col='blue',main ='Count of Y')
+
+```
+
+#### 2.2 Calculate and report full tables for p(X), p(Y), p(X,Y), p(X|Y),p(Y|X).
+
+```{r}
+# calculation probability of X
+probX <- prop.table(table(q2data$X))
+probX
+# calculation probability of Y
+probY <- prop.table(table(q2data$Y))
+probY
+# calculation probability of XY
+probXY <- prop.table(table(q2data))
+probXY
+# calculation probability of X given Y=1
+probX_Y1 <- prop.table(table(q2data$X[q2data$Y==1]))
+probX_Y1
+# calculation probability of X given Y=0
+probX_Y0 <- prop.table(table(q2data$X[q2data$Y==0]))
+probX_Y0
+# calculation probability of Y given X=1
+probY_X1 <-prop.table(table(q2data$Y[q2data$X==1]))
+probX_Y1
+# calculation probability of Y given X=0
+probY_X0 <-prop.table(table(q2data$Y[q2data$X==0]))
+probY_X0
+# 
+hX <- -sum(probX*log2(probX))
+hX #entropy of X
+hY <- -sum(probY*log2(probY))
+hY #entropy of Y
+hX_Y1 <- -sum(probX_Y1*log2(probX_Y1))
+hX_Y1 #entropy of X given Y=1
+hX_Y0 <- -sum(probX_Y0*log2(probX_Y0))
+hX_Y0 #entropy of X given Y=0
+hY_X1 <- -sum(probY_X1*log2(probY_X1))
+hY_X1 #entropy of Y given X=1
+hY_X0 <- -sum(probY_X0*log2(probY_X0))
+hY_X0 #entropy of Y given X=0
+
+
+```
+
+# Task 3 Covariance and Correlation
+
+##### X and Y are standard normal variates thus X~N(0,1) and Y~N(0,1). Now, we have U and V random variable given by U = X-Y and V=2X+3Y. We need to find the covariance and correlation between U and V.
+
+```{r}
+set.seed(20) # changing the seed value.
+
+X <- rnorm(1000000,0,1) # creating standard normal variables with mean 0 and variance 1
+
+Y <- rnorm(1000000,0,1) # creating standard normal variables with mean 0 and variance 1
+
+U <- X-Y       # Creating new random variable U(given) which depends on X and Y
+
+V <- 2*X+3*Y   # Creating new random variable V(given) which depends on X and Y
+
+cov(U,V) # to calculate covariance
+cor(U,V) # to calculate correlation
+```
+
+
+# Task 4 Maximum likelihood estimation
+
+##### Solve the MLE of a Poisson parameter using optimize() function. Create 10 i.i.d random variables from Poisson Distribution with Lambda = 10. Experimentally justify the central limit theorem using simulation with sample size 100, 1000, 10000 and 100000. Compute both theoretical and sample mean and sd
+
+```{r}
+# creating a new vector containing data obtained from poisson distribution.
+datapoints <-c(4,3,2,4,6,3,4,0,5,6,4,4,4,5,3,3,4,5,4,5)
+
+# creating a function that takes two arguments of which one is known and the other
+# one we want to optimize. But, as we know the second derivative of Log likelihood of
+# poisson distribution is -ve, lamda will maximize the given function.
+
+func = function(lambda,datapoints)
+{
+  log_likelihood = sum(datapoints)*log(lambda)-(lambda)*length(datapoints)
+}
+optimize(func,c(min(datapoints),max(datapoints)),data=datapoints,maximum=TRUE)
+
+```
+
+# Task 5 Central Limit Theorem
+##### Consider sampling a sequence of 10 i.i.d. random variables from a Poisson distribution with lambda = 10. For this, experimentally justify the central limit theorem using simulation with sample size 100, 1000, 10000 and 100000.
+
+```{r}
+lambda <- 10
+sample_size <- 10
+
+# simulating 100 times
+simulate100 <- vector()
+
+for (i in 1:100) {
+  
+  simulate100 <- c(simulate100, mean (rpois(sample_size, lambda)))
+
+  }
+
+cat('The mean for 100 simulations:', mean(simulate100),'\n') 
+    #to display the sample mean
+cat('The Standard deviation for 100 simulations:',sd(simulate100),'\n')  
+#to display the standard deviation
+hist(simulate100,col = "lightgreen",probability = TRUE,xlab = "Means of 100 Simulations",main = "Histogram for 100 Simulations")
+curve(dnorm(x, mean=lambda, sd=1),col='darkblue',lwd=2,add = TRUE,yaxt = 'n')
+#creating normal theoretical curve to check how it fit's our simulation.
+
+
+# simulating 1000 times
+simulate1000 <- vector()
+
+for (i in 1:1000) {
+  
+  simulate1000 <- c(simulate1000, mean (rpois(sample_size, lambda)))
+
+  }
+
+cat('The mean for 1000 simulations:', mean(simulate1000),'\n') 
+    #to display the sample mean
+cat('The Standard deviation for 1000 simulations:',sd(simulate1000),'\n')  
+#to display the standard deviation
+hist(simulate1000,col = "red",probability = TRUE,xlab = "Means of 1000 Simulations",main = "Histogram for 1000 Simulations")
+curve(dnorm(x, mean=lambda, sd=1),col='darkblue',lwd=2,add = TRUE,yaxt = 'n')
+#creating normal theoretical curve to check how it fit's our simulation.
+
+
+# simulating 10000 times
+simulate10000 <- vector()
+
+for (i in 1:10000) {
+  
+  simulate10000 <- c(simulate10000, mean (rpois(sample_size, lambda)))
+}
+cat('The mean for 10000 simulations:', mean(simulate10000),'\n') 
+    #to display the sample mean
+cat('The Standard deviation for 10000 simulations:',sd(simulate10000),'\n')  
+#to display the standard deviation
+hist(simulate10000,col = "blue",probability = TRUE,xlab = "Means of 10000 Simulations",main = "Histogram for 10000 Simulations")
+curve(dnorm(x, mean=lambda, sd=1),col='green',lwd=2,add = TRUE,yaxt = 'n')
+#creating normal theoretical curve to check how it fit's our simulation.
+
+
+# simulating 100000 times
+simulate100000 <- vector()
+
+for (i in 1:100000) {
+  
+  simulate100000 <- c(simulate100000, mean (rpois(sample_size, lambda)))
+
+  }
+
+cat('The mean for 100000 simulations:', mean(simulate100000),'\n') 
+    #to display the sample mean
+cat('The Standard deviation for 100000 simulations:',sd(simulate100000),'\n')  
+#to display the standard deviation
+hist(simulate100000,col = "lightblue",probability = TRUE,xlab = "Means of 100000 Simulations",main = "Histogram for 100000 Simulations")
+curve(dnorm(x, mean=lambda, sd=1),col='red',lwd=2,add = TRUE,yaxt = 'n')
+#creating normal theoretical curve to check how it fit's our simulation.
+
+
+```
+
+#### Hence, when n(simulations) are taken infinity large, the random variable drawn from Poisson distribution tends to follow Normal Distribution. The curve of normal distribution fits best for 100000 simulations, which is what the Central Limit Theorem states.
